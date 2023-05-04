@@ -16,6 +16,8 @@ class FlowSom(BaseEstimator):
         maxMeta=None,
         importance=None,
         seed=None,
+        xdim=10,
+        ydim=10
     ):
         self.input = input
         self.pattern = pattern
@@ -25,6 +27,8 @@ class FlowSom(BaseEstimator):
         self.maxMeta = maxMeta
         self.importance = importance
         self.seed = seed
+        self.xdim = xdim
+        self.ydim = ydim
         self.som = None
         if isinstance(input, str):
             self.fcs_data = FlowData(self.input)
@@ -32,7 +36,7 @@ class FlowSom(BaseEstimator):
 
 
     def buildSOM(self):
-        som_builder = SOM_Builder(self.n_clusters, self.n_clusters)
+        som_builder = SOM_Builder(self.xdim, self.ydim)
         self.som = som_builder.som(self.npy_data, self.fcs_data.channel_count)
 
     def set_params(self, **params):
@@ -62,5 +66,5 @@ class FlowSom(BaseEstimator):
 
 
 if __name__ == "__main__":
-    flowsom = FlowSom(input="../Gelabelde_datasets/FlowCAP_WNV.fcs")
+    flowsom = FlowSom(input="../Gelabelde_datasets/FlowCAP_ND.fcs")
     flowsom.buildSOM()
