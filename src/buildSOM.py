@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from minisom import MiniSom
 
@@ -17,9 +19,10 @@ class SOM_Builder():
         nhbrdist = squareform(pdist([(x,y) for x in range(self.xdim) for y in range(self.ydim)], metric="chebyshev"))
         radius = np.quantile(nhbrdist, 0.67)
 
-        som = MiniSom(
-            x=self.xdim, y=self.ydim, input_len=num_labels, sigma=radius, learning_rate=0.05
-        )
+        # som = MiniSom(
+        #     x=self.xdim, y=self.ydim, input_len=num_labels, sigma=radius, learning_rate=0.05
+        # )
+        som = MiniSom(x=self.xdim, y=self.ydim, input_len=num_labels, learning_rate=0.05)
         som.train(fsom, 100)
         print(som.get_weights())
         print(f'quantization error: {som.quantization_error(fsom)}')

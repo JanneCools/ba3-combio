@@ -53,6 +53,7 @@ class FlowSom(BaseEstimator):
 
     def buildMST(self):
         mst_builder = MST_Builder(self.xdim, self.ydim)
+        # mst_builder.build_mst_igraph(self.som, len(self.colsToUse))
         mst_builder.build_mst(self.som, len(self.colsToUse))
 
     def set_params(self, **params):
