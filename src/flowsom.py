@@ -1,3 +1,5 @@
+import random
+
 from sklearn.base import BaseEstimator
 import numpy as np
 import pandas
@@ -34,6 +36,8 @@ class FlowSom(BaseEstimator):
         self.ydim = ydim
         self.som = None
         self.npy_data = None
+        if seed is not None:
+            random.seed(seed)
         if isinstance(input, str):
             self.adata = readfcs.read(self.input)
             self.remove_unused_data()
@@ -51,10 +55,12 @@ class FlowSom(BaseEstimator):
         som_builder = SOM_Builder(self.xdim, self.ydim)
         self.som = som_builder.build(self.npy_data, len(self.colsToUse))
 
-    def buildMST(self):
+    def buildMST(self, networkx=True):
         mst_builder = MST_Builder(self.xdim, self.ydim)
-        # mst_builder.build_mst_igraph(self.som, len(self.colsToUse))
-        mst_builder.build_mst(self.som, len(self.colsToUse))
+        if networkx:
+            mst_builder.build_mst(self.som, len(self.colsToUse))
+        else:
+            mst_builder.build_mst_igraph(self.som, len(self.colsToUse))
 
     def set_params(self, **params):
         self.__dict__.update(params)
@@ -86,10 +92,14 @@ if __name__ == "__main__":
     cols_flowcap_nd = ["FITC-A", "PerCP-Cy5-5-A", "Pacific Blue-A",
                        "Pacifc Orange-A", "QDot 605-A", "APC-A", "Alexa 700-A",
                        "PE-A", "PE-Cy5-A", "PE-Cy7-A"]
+    cols_levine_13 = ["CD45", "CD45RA", "CD19", "CD11b", "CD4", "CD8", "CD34",
+                      "CD20", "CD33", "CD123", "CD38", "CD90", "CD3"]
     flowsom = FlowSom(
-        input="../Gelabelde_datasets/FlowCAP_ND.fcs",
-        colsToUse=cols_flowcap_nd
+        input="../Gelabelde_datasets/Levine_13dim.fcs",
+        colsToUse=cols_levine_13,
+        # seed=10
     )
     flowsom.buildSOM()
-    flowsom.buildMST()
+    flowsom.buildMST(networkx=True)
+    flowsom.buildMST(networkx=False)
     #MST_Builder(1,1).test()

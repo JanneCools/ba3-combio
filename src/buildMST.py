@@ -12,27 +12,42 @@ class MST_Builder():
         self.xdim = xdim
         self.ydim = ydim
 
-    # def build_mst_igraph(self, som: list, channels: int):
-    #     nodes = self.xdim*self.ydim
-    #     graph = ig.Graph()
-    #     som = np.reshape(som, (nodes, channels))
-    #     # print(som)
-    #     print(som.shape)
-    #     for x in range(nodes):
-    #         for y in range(x + 1, nodes):
-    #             difference = abs(som[x] - som[y])
-    #             weight = np.product(
-    #                 [i for i in difference if not math.isnan(i)])
-    #             graph.add_edge(x, y, weight=weight)
-    #     tree = graph.spanning_tree()
-    #
-    #     pos = graphviz_layout(tree, prog="neato")
-    #     ig.drawing.plot(tree, pos=pos)
-    #     ax = plt.gca()
-    #     ax.margins(0.1)
-    #     plt.axis("off")
-    #     #plt.savefig("twopi_mst_edges")
-    #     plt.show()
+    def build_mst_igraph(self, som: list, channels: int):
+        nodes = self.xdim*self.ydim
+        graph = ig.Graph(n=nodes)
+        weights = []
+        som = np.reshape(som, (nodes, channels))
+
+        for x in range(nodes):
+            for y in range(x + 1, nodes):
+                difference = abs(som[x] - som[y])
+                weight = np.product(
+                    [i for i in difference if not math.isnan(i)])
+                graph.add_edges([(x, y)])
+                weights.append(weight)
+        graph.es["weight"] = weights
+        tree = graph.spanning_tree(weights=graph.es["weight"], return_tree=True)
+
+        # pos = graphviz_layout(tree, prog="neato")
+        layout = tree.layout_kamada_kawai()
+        # fig, ax = plt.subplots()
+        ax = plt.gca()
+        ax.margins(0.01)
+
+        # plot edges
+        ig.plot(
+            tree,
+            target=ax,
+            layout=layout,
+            vertex_size=0
+        )
+        for node in tree.es.indices:
+            node_weight = [i if not math.isnan(i) and i > 0 else 0 for i in som[node]]
+            node_pos = layout[node]
+            self.draw_nodes(node_weight, node_pos[0], node_pos[1], ax)
+        # plt.pie([0.5,0.5], center=(0,0), radius=0.1)
+        plt.axis("off")
+        plt.show()
 
     def build_mst(self, som: list, channels: int):
         nodes = self.xdim*self.ydim
