@@ -1,13 +1,16 @@
+import math
 import random
 
+import networkx as nx
 from sklearn.base import BaseEstimator
 import numpy as np
 import pandas
-import anndata
-from flowio import FlowData
 import readfcs
-from buildSOM import SOM_Builder
-from buildMST import MST_Builder
+from sklearn.cluster import AgglomerativeClustering
+from scipy.spatial.distance import pdist, squareform
+from plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
+from minisom import MiniSom
+import igraph as ig
 
 
 class FlowSom(BaseEstimator):
@@ -51,16 +54,69 @@ class FlowSom(BaseEstimator):
             data = np.delete(data, index, axis=1)
         self.npy_data = data
 
-    def buildSOM(self):
-        som_builder = SOM_Builder(self.xdim, self.ydim)
-        self.som = som_builder.build(self.npy_data, len(self.colsToUse))
+    def build_som(self):
+        # bepaal radius
+        nhbrdist = squareform(pdist([(x, y) for x in range(self.xdim) for y in range(self.ydim)],metric="chebyshev"))
+        radius = np.quantile(nhbrdist, 0.67)
 
-    def buildMST(self, networkx=True):
-        mst_builder = MST_Builder(self.xdim, self.ydim)
+        # som = MiniSom(
+        #     x=self.xdim, y=self.ydim, input_len=num_labels, sigma=radius, learning_rate=0.05
+        # )
+        self.som = MiniSom(x=self.xdim, y=self.ydim, input_len=len(self.colsToUse),
+                      learning_rate=0.05)
+        self.som.train(self.npy_data, 100)
+        print(self.som.get_weights())
+        print(f'quantization error: {self.som.quantization_error(self.npy_data)}')
+        self.som_weights = np.reshape(self.som.get_weights(), (self.xdim*self.ydim, len(self.colsToUse)))
+        plot_SOM(self.som.get_weights(), self.xdim, self.ydim)
+
+    def build_mst(self, networkx=True):
         if networkx:
-            mst_builder.build_mst(self.som, len(self.colsToUse))
+            self.__build_mst_networkx()
         else:
-            mst_builder.build_mst_igraph(self.som, len(self.colsToUse))
+            self.__build_mst_igraph()
+
+    def __build_mst_networkx(self):
+        nodes = self.xdim * self.ydim
+        print(nodes)
+        graph = nx.Graph()
+
+        # print(som)
+        print(self.som_weights.shape)
+        for x in range(nodes):
+            # graph.add_node()
+            for y in range(x + 1, nodes):
+                difference = abs(self.som_weights[x] - self.som_weights[y])
+                weight = np.product(
+                    [i for i in difference if not math.isnan(i)])
+                graph.add_edge(x, y, weight=weight)
+        tree = nx.minimum_spanning_tree(graph)
+        plot_MST_networkx(tree, self.som_weights)
+
+    def __build_mst_igraph(self):
+        dim = self.xdim * self.ydim
+        graph = ig.Graph(n=dim)
+        weights = []
+
+        for x in range(dim):
+            for y in range(x + 1, dim):
+                difference = abs(self.som_weights[x] - self.som_weights[y])
+                weight = np.product(
+                    [i for i in difference if not math.isnan(i)])
+                graph.add_edges([(x, y)])
+                weights.append(weight)
+        graph.es["weight"] = weights
+        tree = graph.spanning_tree(weights=graph.es["weight"], return_tree=True)
+        plot_MST_igraph(tree, self.som_weights)
+
+    def cluster(self):
+        som_weights = np.reshape(self.som, (self.xdim*self.ydim, len(self.colsToUse)))
+        print(som_weights)
+        print(som_weights.shape)
+        clustering = AgglomerativeClustering(n_clusters=self.n_clusters, linkage="average")
+        clustering.fit(som_weights)
+        print(clustering.labels_)
+
 
     def set_params(self, **params):
         self.__dict__.update(params)
@@ -97,9 +153,10 @@ if __name__ == "__main__":
     flowsom = FlowSom(
         input="../Gelabelde_datasets/Levine_13dim.fcs",
         colsToUse=cols_levine_13,
-        # seed=10
+        seed=10
     )
-    flowsom.buildSOM()
-    flowsom.buildMST(networkx=True)
-    flowsom.buildMST(networkx=False)
+    flowsom.build_som()
+    flowsom.build_mst(networkx=True)
+    flowsom.build_mst(networkx=False)
+    # flowsom.cluster()
     #MST_Builder(1,1).test()
