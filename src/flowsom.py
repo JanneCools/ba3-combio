@@ -76,7 +76,7 @@ class FlowSom(BaseEstimator):
         else:
             self.__build_mst_igraph()
 
-    def __build_mst_networkx(self):
+    def __build_mst_networkx(self, clusters=None):
         nodes = self.xdim * self.ydim
         print(nodes)
         graph = nx.Graph()
@@ -91,9 +91,9 @@ class FlowSom(BaseEstimator):
                     [i for i in difference if not math.isnan(i)])
                 graph.add_edge(x, y, weight=weight)
         tree = nx.minimum_spanning_tree(graph)
-        plot_MST_networkx(tree, self.som_weights)
+        plot_MST_networkx(tree, self.som_weights, clusters)
 
-    def __build_mst_igraph(self):
+    def __build_mst_igraph(self, clusters=None):
         dim = self.xdim * self.ydim
         graph = ig.Graph(n=dim)
         weights = []
@@ -107,15 +107,16 @@ class FlowSom(BaseEstimator):
                 weights.append(weight)
         graph.es["weight"] = weights
         tree = graph.spanning_tree(weights=graph.es["weight"], return_tree=True)
-        plot_MST_igraph(tree, self.som_weights)
+        plot_MST_igraph(tree, self.som_weights, clusters)
 
-    def cluster(self):
-        som_weights = np.reshape(self.som, (self.xdim*self.ydim, len(self.colsToUse)))
-        print(som_weights)
-        print(som_weights.shape)
+    def cluster(self, networkx=True):
         clustering = AgglomerativeClustering(n_clusters=self.n_clusters, linkage="average")
-        clustering.fit(som_weights)
+        clustering.fit(self.som_weights)
         print(clustering.labels_)
+        if networkx:
+            self.__build_mst_networkx(clustering.labels_)
+        else:
+            self.__build_mst_igraph(clustering.labels_)
 
 
     def set_params(self, **params):
@@ -158,5 +159,6 @@ if __name__ == "__main__":
     flowsom.build_som()
     flowsom.build_mst(networkx=True)
     flowsom.build_mst(networkx=False)
-    # flowsom.cluster()
+    flowsom.cluster(networkx=True)
+    flowsom.cluster(networkx=False)
     #MST_Builder(1,1).test()
