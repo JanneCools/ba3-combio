@@ -33,17 +33,19 @@ class FlowSom(BaseEstimator):
         self.colsToUse = colsToUse
         self.n_clusters = n_clusters
         self.maxMeta = maxMeta
-        self.importance = importance
         self.seed = seed
         self.xdim = xdim
         self.ydim = ydim
         self.som = None
-        self.npy_data = None
+        self.np_data = None
         if seed is not None:
             random.seed(seed)
         if isinstance(input, str):
             self.adata = readfcs.read(self.input)
             self.remove_unused_data()
+        self.build_som()
+        self.build_mst(networkx=True)
+        self.cluster(networkx=True)
 
     def remove_unused_data(self):
         cols = self.adata.var_names
@@ -52,22 +54,31 @@ class FlowSom(BaseEstimator):
         data = self.adata.X
         for index in indices:
             data = np.delete(data, index, axis=1)
-        self.npy_data = data
+        self.np_data = np.nan_to_num(data)
+        # self.np_data = data
 
     def build_som(self):
         # bepaal radius
-        nhbrdist = squareform(pdist([(x, y) for x in range(self.xdim) for y in range(self.ydim)],metric="chebyshev"))
+        grid = [(x, y) for x in range(self.xdim) for y in range(self.ydim)]
+        nhbrdist = squareform(pdist(grid, metric="chebyshev"))
         radius = np.quantile(nhbrdist, 0.67)
 
-        # som = MiniSom(
-        #     x=self.xdim, y=self.ydim, input_len=num_labels, sigma=radius, learning_rate=0.05
+        # self.som = MiniSom(
+        #     x=self.xdim, y=self.ydim, input_len=self.np_data.shape[1],
+        #     sigma=radius, learning_rate=0.05, random_seed=self.seed
         # )
-        self.som = MiniSom(x=self.xdim, y=self.ydim, input_len=len(self.colsToUse),
-                      learning_rate=0.05)
-        self.som.train(self.npy_data, 100)
-        print(self.som.get_weights())
-        print(f'quantization error: {self.som.quantization_error(self.npy_data)}')
+        self.som = MiniSom(
+            x=self.xdim, y=self.ydim, input_len=len(self.colsToUse),
+            learning_rate=0.05
+        )
+        self.som.train(self.np_data, 100, verbose=True)
         self.som_weights = np.reshape(self.som.get_weights(), (self.xdim*self.ydim, len(self.colsToUse)))
+        # win = self.som.win_map(self.np_data)
+        # print(win)
+
+        # update anndata
+        self.adata.uns["som_weights"] = self.som_weights
+
         plot_SOM(self.som.get_weights(), self.xdim, self.ydim)
 
     def build_mst(self, networkx=True):
@@ -87,8 +98,8 @@ class FlowSom(BaseEstimator):
             # graph.add_node()
             for y in range(x + 1, nodes):
                 difference = abs(self.som_weights[x] - self.som_weights[y])
-                weight = np.product(
-                    [i for i in difference if not math.isnan(i)])
+                weight = np.sum(
+                         [i for i in difference if not math.isnan(i)])
                 graph.add_edge(x, y, weight=weight)
         tree = nx.minimum_spanning_tree(graph)
         plot_MST_networkx(tree, self.som_weights, clusters)
@@ -101,7 +112,7 @@ class FlowSom(BaseEstimator):
         for x in range(dim):
             for y in range(x + 1, dim):
                 difference = abs(self.som_weights[x] - self.som_weights[y])
-                weight = np.product(
+                weight = np.sum(
                     [i for i in difference if not math.isnan(i)])
                 graph.add_edges([(x, y)])
                 weights.append(weight)
@@ -111,8 +122,10 @@ class FlowSom(BaseEstimator):
 
     def cluster(self, networkx=True):
         clustering = AgglomerativeClustering(n_clusters=self.n_clusters, linkage="average")
-        clustering.fit(self.som_weights)
+        som_weights = np.nan_to_num(self.som_weights)
+        clustering.fit(som_weights)
         print(clustering.labels_)
+        self.adata.uns["cluster_labels"] = clustering.labels_
         if networkx:
             self.__build_mst_networkx(clustering.labels_)
         else:
@@ -156,9 +169,3 @@ if __name__ == "__main__":
         colsToUse=cols_levine_13,
         seed=10
     )
-    flowsom.build_som()
-    flowsom.build_mst(networkx=True)
-    flowsom.build_mst(networkx=False)
-    flowsom.cluster(networkx=True)
-    flowsom.cluster(networkx=False)
-    #MST_Builder(1,1).test()

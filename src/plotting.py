@@ -20,6 +20,7 @@ def plot_SOM(som, xdim, ydim):
 
 
 def plot_MST_networkx(tree, som, clusters=None):
+    plt.figure(figsize=(20, 20))
     pos = graphviz_layout(tree, prog="neato")
     nx.draw_networkx_edges(tree, pos)
     # nx.draw_networkx_nodes(tree, pos, node_size=100)
@@ -46,6 +47,7 @@ def plot_MST_networkx(tree, som, clusters=None):
 
 
 def plot_MST_igraph(tree, som, clusters=None):
+    plt.figure(figsize=(20, 20))
     # pos = graphviz_layout(tree, prog="neato")
     layout = tree.layout_kamada_kawai()
     # fig, ax = plt.subplots()
@@ -90,7 +92,7 @@ def draw_nodes(data, xpos, ypos, ax, color):
         y = [0] + np.sin(angles).tolist()
         xy = np.column_stack([x, y])
         if color is not None:
-            ax.scatter([xpos], [ypos], marker=xy, s=100, edgecolors=color)
+            ax.scatter([xpos], [ypos], marker=xy, s=1800, edgecolors=color, linewidth=3)
         else:
-            ax.scatter([xpos], [ypos], marker=xy, s=100)
+            ax.scatter([xpos], [ypos], marker=xy, s=1800)
     return ax
