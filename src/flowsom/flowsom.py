@@ -8,7 +8,7 @@ import pandas
 import readfcs
 from sklearn.cluster import AgglomerativeClustering
 from scipy.spatial.distance import pdist, squareform
-from plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
+from src.plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
 from minisom import MiniSom
 import igraph as ig
 
@@ -176,7 +176,7 @@ class FlowSom(BaseEstimator):
         return self.adata
 
     def report(self, filename: str):
-        report = open("../../verslag.pdf", "r")
+        report = open("../verslag.pdf", "r")
         lines = report.readlines()
 
         output = open(filename, "w")
@@ -195,7 +195,7 @@ if __name__ == "__main__":
                       "CD15", "CD16", "CD44", "CD38", "CD13", "CD3", "CD61",
                       "CD117", "CD49d", "HLA-DR", "CD64", "CD41"]
     flowsom = FlowSom(
-        input="../Gelabelde_datasets/FlowCAP_ND.fcs",
+        input="../../Gelabelde_datasets/FlowCAP_ND.fcs",
         colsToUse=cols_flowcap_nd,
         seed=10
     )
