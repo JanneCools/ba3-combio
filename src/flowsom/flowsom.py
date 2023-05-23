@@ -1,6 +1,8 @@
 import math
 import random
 
+from .plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
+
 import networkx as nx
 from sklearn.base import BaseEstimator, ClassifierMixin
 import numpy as np
@@ -8,7 +10,6 @@ import pandas
 import readfcs
 from sklearn.cluster import AgglomerativeClustering
 from scipy.spatial.distance import pdist, squareform
-from src.plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
 from minisom import MiniSom
 import igraph as ig
 

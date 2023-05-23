@@ -1,1 +1,2 @@
-from flowsom import FlowSOM
+from .flowsom import FlowSOM
+from . import plotting
