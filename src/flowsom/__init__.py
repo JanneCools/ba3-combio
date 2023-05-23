@@ -1,1 +1,1 @@
-from flowsom import FlowSom
+from flowsom import FlowSOM

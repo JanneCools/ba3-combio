@@ -13,7 +13,7 @@ from minisom import MiniSom
 import igraph as ig
 
 
-class FlowSom(BaseEstimator):
+class FlowSOM(BaseEstimator):
     def __init__(
         self,
         input,
@@ -194,7 +194,7 @@ if __name__ == "__main__":
                       "CD123", "CD321", "CD14", "CD33", "CD47", "CD11c", "CD7",
                       "CD15", "CD16", "CD44", "CD38", "CD13", "CD3", "CD61",
                       "CD117", "CD49d", "HLA-DR", "CD64", "CD41"]
-    flowsom = FlowSom(
+    flowsom = FlowSOM(
         input="../../Gelabelde_datasets/FlowCAP_ND.fcs",
         colsToUse=cols_flowcap_nd,
         seed=10
