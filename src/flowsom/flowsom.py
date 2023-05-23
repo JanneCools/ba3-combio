@@ -176,7 +176,7 @@ class FlowSom(BaseEstimator):
         return self.adata
 
     def report(self, filename: str):
-        report = open("../verslag.pdf", "r")
+        report = open("../../verslag.pdf", "r")
         lines = report.readlines()
 
         output = open(filename, "w")
