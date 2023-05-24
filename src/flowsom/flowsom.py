@@ -1,7 +1,7 @@
 import math
 import random
 
-from .plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
+from plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
 
 import networkx as nx
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -54,9 +54,9 @@ class FlowSOM(BaseEstimator):
         data = self.adata.X
         for index in unused:
             data = np.delete(data, index-1, axis=1)
-        self.np_data = np.nan_to_num(data)
         # sla de data op van de kolommen die gebruikt moeten worden
-        self.adata.uns["used_data"] = self.np_data
+        self.adata.uns["used_data"] = data
+        print(data)
 
     def build_som(self, xdim, ydim, cols):
         # bepaal radius
@@ -65,19 +65,19 @@ class FlowSOM(BaseEstimator):
         radius = np.quantile(nhbrdist, 0.67)
 
         # self.som = MiniSom(
-        #     x=xdim, y=ydim, input_len=self.np_data.shape[1],
-        #     sigma=radius, learning_rate=0.05, random_seed=self.seed
+        #     x=xdim, y=ydim, input_len=cols, sigma=radius,
+        #     learning_rate=0.05, random_seed=self.seed
         # )
         self.som = MiniSom(
             x=xdim, y=ydim, input_len=cols, learning_rate=0.05, random_seed=self.seed
         )
-        self.som.train(self.np_data, 100, verbose=True)
+        self.som.train(self.adata.uns["used_data"], 100, verbose=True)
         self.adata.uns["som_weights"] = np.reshape(self.som.get_weights(), (xdim*ydim, cols))
         # win = self.som.win_map(self.np_data)
         # print(win)
 
         # update anndata
-        self.adata.uns["som_weights"] = self.adata.uns["som_weights"]
+        # self.adata.uns["som_weights"] = self.adata.uns["som_weights"]
 
         plot_SOM(self.som.get_weights(), xdim, ydim)
 
@@ -96,11 +96,8 @@ class FlowSOM(BaseEstimator):
         weights = self.adata.uns["som_weights"]
         print(weights.shape)
         for x in range(nodes):
-            # graph.add_node()
             for y in range(x + 1, nodes):
-                difference = abs(weights[x] - weights[y])
-                weight = np.sum(
-                         [i for i in difference if not math.isnan(i)])
+                weight = np.sum(abs(weights[x] - weights[y]))
                 graph.add_edge(x, y, weight=weight)
         tree = nx.minimum_spanning_tree(graph)
         if clusters is not None:
@@ -117,9 +114,7 @@ class FlowSOM(BaseEstimator):
         som_weights = self.adata.uns["som_weights"]
         for x in range(dim):
             for y in range(x + 1, dim):
-                difference = abs(som_weights[x] - som_weights[y])
-                weight = np.sum(
-                    [i for i in difference if not math.isnan(i)])
+                weight = np.sum(abs(som_weights[x] - som_weights[y]))
                 graph.add_edges([(x, y)])
                 weights.append(weight)
         graph.es["weight"] = weights
@@ -132,8 +127,7 @@ class FlowSOM(BaseEstimator):
 
     def cluster(self, n_clusters, xdim, ydim, networkx=True):
         clustering = AgglomerativeClustering(n_clusters=n_clusters, linkage="average")
-        som_weights = np.nan_to_num(self.adata.uns["som_weights"])
-        clustering.fit(som_weights)
+        clustering.fit(self.adata.uns["som_weights"])
         print(clustering.labels_)
         self.adata.uns["cluster_labels"] = clustering.labels_
         if networkx:
@@ -177,7 +171,7 @@ class FlowSOM(BaseEstimator):
         return self.adata
 
     def report(self, filename: str):
-        report = open("../verslag.pdf", "r")
+        report = open("../../verslag.pdf", "r")
         lines = report.readlines()
 
         output = open(filename, "w")
