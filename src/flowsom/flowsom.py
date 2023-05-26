@@ -1,7 +1,7 @@
-import math
 import random
 
 from plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
+# from .plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
 
 import networkx as nx
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -17,9 +17,8 @@ import igraph as ig
 class FlowSOM(BaseEstimator):
     def __init__(
         self,
-        input,
+        # input,
         pattern=".fcs",
-        silent=True,
         colsToUse=None,
         n_clusters=10,
         maxMeta=None,
@@ -29,22 +28,18 @@ class FlowSOM(BaseEstimator):
     ):
         self.input = input
         self.pattern = pattern
-        self.silent = silent
         self.maxMeta = maxMeta
         self.seed = seed
         self.xdim = xdim
         self.ydim = ydim
+        self.colsToUse = colsToUse
         self.cols = len(colsToUse)
+        self.n_clusters = n_clusters
+        self.adata = None
         self.som = None
         self.np_data = None
         if seed is not None:
             random.seed(seed)
-        if isinstance(input, str):
-            self.adata = readfcs.read(self.input)
-            self.remove_unused_data(colsToUse)
-        self.build_som(xdim, ydim, len(colsToUse))
-        self.build_mst(xdim, ydim, networkx=True)
-        self.cluster(n_clusters, xdim, ydim, networkx=True)
 
     def remove_unused_data(self, columns):
         cols = self.adata.uns["meta"]["channels"]["$PnN"]
@@ -139,18 +134,18 @@ class FlowSOM(BaseEstimator):
     def set_params(self, **params):
         self.__dict__.update(params)
 
-    def fit(self, X: pandas.DataFrame, y=None):
-        x = ClassifierMixin()
-        # x.
-        # self.build_som(self.xdim, self.ydim, self.cols)
-        # print(X)
-        # estimator = BaseEstimator()
-        # estimator.fit(X.values, self.som_weights)
+    def fit(self, x, y=None):
+        if isinstance(x, str):
+            self.adata = readfcs.read(x)
+            self.remove_unused_data(self.colsToUse)
+        self.build_som(self.xdim, self.ydim, len(self.colsToUse))
         return self
-        # raise NotImplementedError
 
-    def predict(self, X: pandas.DataFrame):
-        raise NotImplementedError
+    def predict(self, x):
+        self.fit(x)
+        self.build_mst(self.xdim, self.ydim, networkx=True)
+        self.cluster(self.n_clusters, self.xdim, self.ydim, networkx=True)
+        return self
 
     def fit_predict(self, X: pandas.DataFrame, y=None):
         raise NotImplementedError
@@ -190,11 +185,9 @@ if __name__ == "__main__":
                       "CD15", "CD16", "CD44", "CD38", "CD13", "CD3", "CD61",
                       "CD117", "CD49d", "HLA-DR", "CD64", "CD41"]
     flowsom = FlowSOM(
-        input="../../Gelabelde_datasets/FlowCAP_ND.fcs",
+        n_clusters=10,
         colsToUse=cols_flowcap_nd,
         seed=10
     )
-    # adata = flowsom.as_adata()
-    # used_data = adata.uns["used_data"]
-    # flowsom.fit(pandas.DataFrame(used_data))
-    # flowsom.report("test.txt")
+    flowsom.fit(x="../../Gelabelde_datasets/FlowCAP_ND.fcs")
+    flowsom.predict(x="../../Gelabelde_datasets/FlowCAP_ND.fcs")
