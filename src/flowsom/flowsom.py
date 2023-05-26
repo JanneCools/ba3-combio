@@ -1,4 +1,5 @@
 import random
+import anndata
 
 # from plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
 from .plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
@@ -33,7 +34,6 @@ class FlowSOM(BaseEstimator):
         self.xdim = xdim
         self.ydim = ydim
         self.colsToUse = colsToUse
-        self.cols = len(colsToUse)
         self.n_clusters = n_clusters
         self.adata = None
         self.som = None
@@ -130,14 +130,17 @@ class FlowSOM(BaseEstimator):
         else:
             self.__build_mst_igraph(xdim, ydim, clustering.labels_)
 
-
     def set_params(self, **params):
         self.__dict__.update(params)
 
     def fit(self, x, y=None):
         if isinstance(x, str):
             self.adata = readfcs.read(x)
-            self.remove_unused_data(self.colsToUse)
+        elif isinstance(x, np.ndarray):
+            self.adata = anndata.AnnData(x)
+        if self.colsToUse is None:
+            self.colsToUse = self.adata.var_names
+        self.remove_unused_data(self.colsToUse)
         self.build_som(self.xdim, self.ydim, len(self.colsToUse))
         return self
 
