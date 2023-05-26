@@ -1,7 +1,7 @@
 import random
 
-from plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
-# from .plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
+# from plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
+from .plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
 
 import networkx as nx
 from sklearn.base import BaseEstimator, ClassifierMixin
