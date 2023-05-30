@@ -14,8 +14,7 @@ def plot_SOM(som, xdim, ydim):
         for y in range(ydim):
             plt.subplot(grid[x, y], aspect=1)
             plt.pie([i if i > 0 else 0 for i in som[x][y]])
-    # self.som = som
-    # plt.savefig("output2.png")
+    plt.savefig("som.png")
     plt.show()
 
 
@@ -31,7 +30,7 @@ def plot_MST_networkx(tree, som, clusters=None):
 
     # get colors for the edges of the nodes
     if clusters is not None:
-        color_map = plt.cm.get_cmap('hsv', np.max(clusters)+1)
+        color_map = plt.cm.get_cmap('rainbow', np.max(clusters)+1)
     # plot the nodes
     for node in tree.nodes:
         node_weight = [i if not math.isnan(i) and i > 0 else 0 for i in
@@ -63,7 +62,7 @@ def plot_MST_igraph(tree, som, clusters=None):
     )
     # get colors for the edges of the nodes
     if clusters is not None:
-        color_map = plt.cm.get_cmap('hsv', np.max(clusters)+1)
+        color_map = plt.cm.get_cmap('rainbow', np.max(clusters)+1)
     # plot the nodes
     for node in tree.es.indices:
         node_weight = [i if not math.isnan(i) and i > 0 else 0 for i in
@@ -92,7 +91,7 @@ def draw_nodes(data, xpos, ypos, ax, color):
         y = [0] + np.sin(angles).tolist()
         xy = np.column_stack([x, y])
         if color is not None:
-            ax.scatter([xpos], [ypos], marker=xy, s=1800, edgecolors=color, linewidth=3)
+            ax.scatter([xpos], [ypos], marker=xy, s=1000, edgecolors=color, linewidth=3)
         else:
-            ax.scatter([xpos], [ypos], marker=xy, s=1800)
+            ax.scatter([xpos], [ypos], marker=xy, s=1000)
     return ax
