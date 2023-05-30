@@ -167,8 +167,33 @@ class FlowSOM(BaseEstimator):
         clusters = [self.adata.uns["cluster_labels"][i] for i in winners]
         return clusters
 
-    def fit_predict(self, X: pandas.DataFrame, y=None):
-        raise NotImplementedError
+    def fit_predict(self, x, y=None):
+        if isinstance(x, str):
+            self.adata = readfcs.read(x)
+        elif isinstance(x, np.ndarray):
+            self.adata = anndata.AnnData(x)
+        elif isinstance(x, pandas.DataFrame):
+            self.adata = anndata.AnnData(x)
+        if self.colsToUse is None:
+            self.colsToUse = self.adata.var_names
+            self.adata.uns["used_data"] = self.adata.X
+            # self.adata.uns["meta"]["channels"]["$PnN"] = self.colsToUse
+        else:
+            self.remove_unused_data(self.colsToUse)
+
+        # build SOM
+        self.build_som(self.xdim, self.ydim, len(self.colsToUse))
+
+        # metaclustering
+        self.cluster(self.n_clusters, self.xdim, self.ydim)
+
+        # predict
+        # find som winner for every point in x
+        winners = self.som.predict(self.adata.uns["used_data"])
+        clusters = [self.adata.uns["cluster_labels"][i] for i in winners]
+        return clusters
+
+
 
     def as_df(self, lazy=True):
         """
