@@ -21,7 +21,8 @@ def plot_SOM(som, xdim, ydim):
 
 def plot_MST_networkx(tree, som, clusters=None):
     plt.figure(figsize=(20, 20))
-    pos = graphviz_layout(tree, prog="neato")
+    # pos = graphviz_layout(tree, prog="neato")
+    pos = nx.nx_agraph.graphviz_layout(tree, prog="neato")
     nx.draw_networkx_edges(tree, pos)
     # nx.draw_networkx_nodes(tree, pos, node_size=100)
 
@@ -48,7 +49,6 @@ def plot_MST_networkx(tree, som, clusters=None):
 
 def plot_MST_igraph(tree, som, clusters=None):
     plt.figure(figsize=(20, 20))
-    # pos = graphviz_layout(tree, prog="neato")
     layout = tree.layout_kamada_kawai()
     # fig, ax = plt.subplots()
     ax = plt.gca()
