@@ -5,13 +5,13 @@ import anndata
 from .plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
 
 import networkx as nx
-from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.base import BaseEstimator
 import numpy as np
 import pandas
 import readfcs
 from sklearn.cluster import AgglomerativeClustering
 from scipy.spatial.distance import pdist, squareform
-from minisom import MiniSom
+from sklearn_som.som import SOM
 import igraph as ig
 
 
@@ -23,7 +23,7 @@ class FlowSOM(BaseEstimator):
         colsToUse=None,
         n_clusters=10,
         maxMeta=None,
-        seed=None,
+        seed=10,
         xdim=10,
         ydim=10
     ):
@@ -38,8 +38,7 @@ class FlowSOM(BaseEstimator):
         self.adata = None
         self.som = None
         self.np_data = None
-        if seed is not None:
-            random.seed(seed)
+        random.seed(seed)
 
     def remove_unused_data(self, columns):
         cols = self.adata.uns["meta"]["channels"]["$PnN"]
@@ -54,27 +53,26 @@ class FlowSOM(BaseEstimator):
         print(data)
 
     def build_som(self, xdim, ydim, cols):
+        data = self.adata.uns["used_data"]
+
         # bepaal radius
         grid = [(x, y) for x in range(xdim) for y in range(ydim)]
         nhbrdist = squareform(pdist(grid, metric="chebyshev"))
         radius = np.quantile(nhbrdist, 0.67)
 
-        # self.som = MiniSom(
-        #     x=xdim, y=ydim, input_len=cols, sigma=radius,
-        #     learning_rate=0.05, random_seed=self.seed
-        # )
-        self.som = MiniSom(
-            x=xdim, y=ydim, input_len=cols, learning_rate=0.05, random_seed=self.seed
+        self.som = SOM(
+            m=xdim, n=ydim, dim=cols, sigma=radius/2, lr=0.05,
+            random_state=self.seed
         )
-        self.som.train(self.adata.uns["used_data"], 100, verbose=True)
-        self.adata.uns["som_weights"] = np.reshape(self.som.get_weights(), (xdim*ydim, cols))
-        # win = self.som.win_map(self.np_data)
-        # print(win)
+        # self.som = SOM(
+        #     m=xdim, n=ydim, dim=cols, lr=0.05, random_state=self.seed
+        # )
+        self.som.fit(data)
 
         # update anndata
-        # self.adata.uns["som_weights"] = self.adata.uns["som_weights"]
+        self.adata.uns["som_weights"] = np.reshape(self.som.cluster_centers_, (xdim*ydim, cols))
 
-        plot_SOM(self.som.get_weights(), xdim, ydim)
+        plot_SOM(self.som.cluster_centers_, xdim, ydim)
 
     def build_mst(self, xdim, ydim, networkx=True):
         if networkx:
@@ -123,7 +121,8 @@ class FlowSOM(BaseEstimator):
     def cluster(self, n_clusters, xdim, ydim, networkx=True):
         clustering = AgglomerativeClustering(n_clusters=n_clusters, linkage="average")
         clustering.fit(self.adata.uns["som_weights"])
-        print(clustering.labels_)
+
+        # update anndata
         self.adata.uns["cluster_labels"] = clustering.labels_
         if networkx:
             self.__build_mst_networkx(xdim, ydim, clustering.labels_)
@@ -138,17 +137,35 @@ class FlowSOM(BaseEstimator):
             self.adata = readfcs.read(x)
         elif isinstance(x, np.ndarray):
             self.adata = anndata.AnnData(x)
+        elif isinstance(x, pandas.DataFrame):
+            self.adata = anndata.AnnData(x)
         if self.colsToUse is None:
             self.colsToUse = self.adata.var_names
-        self.remove_unused_data(self.colsToUse)
+            self.adata.uns["used_data"] = self.adata.X
+            # self.adata.uns["meta"]["channels"]["$PnN"] = self.colsToUse
+        else:
+            self.remove_unused_data(self.colsToUse)
+
+        # build SOM
         self.build_som(self.xdim, self.ydim, len(self.colsToUse))
+
+        # metaclustering
+        self.cluster(self.n_clusters, self.xdim, self.ydim)
+
         return self
 
     def predict(self, x):
-        self.fit(x)
-        self.build_mst(self.xdim, self.ydim, networkx=True)
-        self.cluster(self.n_clusters, self.xdim, self.ydim, networkx=True)
-        return self
+        if isinstance(x, str):
+            adata = readfcs.read(x)
+        elif isinstance(x, np.ndarray):
+            adata = anndata.AnnData(x)
+        else:
+            adata = x
+        data = adata.X
+        # find som winner for every point in x
+        winners = self.som.predict(data)
+        clusters = [self.adata.uns["cluster_labels"][i] for i in winners]
+        return clusters
 
     def fit_predict(self, X: pandas.DataFrame, y=None):
         raise NotImplementedError
@@ -175,22 +192,3 @@ class FlowSOM(BaseEstimator):
         output = open(filename, "w")
         output.writelines(lines)
 
-
-if __name__ == "__main__":
-    cols_flowcap_nd = ["FITC-A", "PerCP-Cy5-5-A", "Pacific Blue-A",
-                       "Pacifc Orange-A", "QDot 605-A", "APC-A", "Alexa 700-A",
-                       "PE-A", "PE-Cy5-A", "PE-Cy7-A"]
-    cols_levine_13 = ["CD45", "CD45RA", "CD19", "CD11b", "CD4", "CD8", "CD34",
-                      "CD20", "CD33", "CD123", "CD38", "CD90", "CD3"]
-    cols_levine_32 = ["CD45RA", "CD133", "CD19", "CD22", "CD11b", "CD4", "CD8",
-                      "CD34", "Flt3", "CD20", "CXCR4", "CD235ab", "CD45",
-                      "CD123", "CD321", "CD14", "CD33", "CD47", "CD11c", "CD7",
-                      "CD15", "CD16", "CD44", "CD38", "CD13", "CD3", "CD61",
-                      "CD117", "CD49d", "HLA-DR", "CD64", "CD41"]
-    flowsom = FlowSOM(
-        n_clusters=10,
-        colsToUse=cols_flowcap_nd,
-        seed=10
-    )
-    flowsom.fit(x="../../Gelabelde_datasets/FlowCAP_ND.fcs")
-    flowsom.predict(x="../../Gelabelde_datasets/FlowCAP_ND.fcs")
