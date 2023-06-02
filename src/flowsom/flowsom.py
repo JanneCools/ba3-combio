@@ -24,7 +24,9 @@ class FlowSOM(BaseEstimator):
         maxMeta=None,
         seed=10,
         xdim=10,
-        ydim=10
+        ydim=10,
+        networkx=True,
+        igraph=False
     ):
         self.input = input
         self.pattern = pattern
@@ -34,6 +36,8 @@ class FlowSOM(BaseEstimator):
         self.ydim = ydim
         self.colsToUse = colsToUse
         self.n_clusters = n_clusters
+        self.networkx = networkx
+        self.igraph = igraph
         self.adata = None
         self.som = None
         self.np_data = None
@@ -74,7 +78,7 @@ class FlowSOM(BaseEstimator):
 
         # make SOM
         self.som = SOM(
-            m=xdim, n=ydim, dim=cols, sigma=radius/2, lr=0.05,
+            m=xdim, n=ydim, dim=cols, sigma=radius/3, lr=0.05,
             random_state=self.seed
         )
         self.som.fit(data)
@@ -86,10 +90,10 @@ class FlowSOM(BaseEstimator):
         plot_SOM(self.som.cluster_centers_, xdim, ydim)
         self.build_mst(xdim, ydim)
 
-    def build_mst(self, xdim, ydim, networkx=True):
-        if networkx:
+    def build_mst(self, xdim, ydim):
+        if self.networkx:
             self.__build_mst_networkx(xdim, ydim)
-        else:
+        if self.igraph:
             self.__build_mst_igraph(xdim, ydim)
 
     def __build_mst_networkx(self, xdim, ydim, clusters=None):
@@ -128,15 +132,17 @@ class FlowSOM(BaseEstimator):
             self.adata.uns["mst_som"] = tree
         plot_MST_igraph(tree, som_weights, clusters)
 
-    def cluster(self, n_clusters, xdim, ydim, networkx=True):
-        clustering = AgglomerativeClustering(n_clusters=n_clusters, linkage="average")
+    def cluster(self, n_clusters, xdim, ydim):
+        clustering = AgglomerativeClustering(
+            n_clusters=n_clusters, linkage="average", metric="manhattan"
+        )
         clustering.fit(self.adata.uns["som_clusters"])
 
         # update anndata
         self.adata.uns["metaclusters"] = clustering.labels_
-        if networkx:
+        if self.networkx:
             self.__build_mst_networkx(xdim, ydim, clustering.labels_)
-        else:
+        if self.igraph:
             self.__build_mst_igraph(xdim, ydim, clustering.labels_)
 
     def set_params(self, **params):
