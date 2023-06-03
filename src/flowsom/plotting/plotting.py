@@ -14,7 +14,7 @@ def plot_SOM(som, xdim, ydim):
         for y in range(ydim):
             plt.subplot(grid[x, y], aspect=1)
             plt.pie([i if i > 0 else 0 for i in som[x][y]])
-    plt.savefig("output/som.png")
+    # plt.savefig("output/som.png")
     plt.show()
 
 
