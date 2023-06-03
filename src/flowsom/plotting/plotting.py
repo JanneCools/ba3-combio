@@ -38,60 +38,17 @@ def plot_MST_networkx(tree, som, clusters=None):
         color_map = plt.cm.get_cmap('rainbow', np.max(clusters)+1)
     # plot the nodes
     for node in tree.nodes:
-        node_weight = [i if not math.isnan(i) and i > 0 else 0 for i in
-                       som[node]]
+        node_weight = [i if i > 0 else 0 for i in som[node]]
         if clusters is not None:
             color = color_map(clusters[node])
         else:
             color = None
         draw_nodes(node_weight, pos[node], ax, fig, color)
-    plt.axis("off")
-    if clusters is None:
-        plt.savefig("output/mst_networkx.png")
-    else:
-        plt.savefig("output/clustered_mst_networkx.png")
-    plt.show()
-
-
-def plot_MST_igraph(tree, som, clusters=None):
-    fig = plt.figure(figsize=(20, 20))
-    layout = tree.layout_kamada_kawai()
-    # fig, ax = plt.subplots()
-
-    # x = [x for (x, _) in layout.values()]
-    # y = [y for (_, y) in layout.values()]
-    #
-    # plt.xlim(np.min(x)-10, np.max(x)+10)
-    # plt.ylim(np.min(y)-10, np.max(y)+10)
-
-    ax = plt.gca()
-    ax.margins(0.01)
-
-    # plot edges
-    ig.plot(
-        tree,
-        target=ax,
-        layout=layout,
-        vertex_size=0
-    )
-    # get colors for the edges of the nodes
-    if clusters is not None:
-        color_map = plt.cm.get_cmap('rainbow', np.max(clusters)+1)
-    # plot the nodes
-    for node in tree.es.indices:
-        node_weight = [i if not math.isnan(i) and i > 0 else 0 for i in
-                       som[node]]
-        if clusters is not None:
-            color = color_map(clusters[node])
-        else:
-            color = None
-        draw_nodes(node_weight, layout[node], ax, fig, color)
-    # plt.pie([0.5,0.5], center=(0,0), radius=0.1)
-    plt.axis("off")
-    if clusters is None:
-        plt.savefig("output/mst_igraph.png")
-    else:
-        plt.savefig("output/clustered_mst_igraph.png")
+    plt.axis("equal")
+    # if clusters is None:
+    #     plt.savefig("output/mst_networkx.png")
+    # else:
+    #     plt.savefig("output/clustered_mst_networkx.png")
     plt.show()
 
 
@@ -105,4 +62,48 @@ def draw_nodes(data, pos, ax, fig, color):
         a.pie(data)
     else:
         a.pie(data, wedgeprops={"edgecolor": color, 'linewidth': 2})
+
+
+def plot_MST_igraph(tree, som, clusters=None):
+    plt.figure(figsize=(20, 20))
+    layout = tree.layout_kamada_kawai()
+    # fig, ax = plt.subplots()
+
+    x = [x for (x, _) in layout]
+    y = [y for (_, y) in layout]
+
+    plt.xlim(np.min(x), np.max(x))
+    plt.ylim(np.min(y), np.max(y))
+
+    ax = plt.gca()
+    ax.margins(0.01)
+
+    # plot edges
+    ig.plot(
+        tree,
+        target=ax,
+        layout=layout,
+        vertex_size=0,
+    )
+    # get colors for the edges of the nodes
+    if clusters is not None:
+        color_map = plt.cm.get_cmap('rainbow', np.max(clusters)+1)
+    # plot the nodes
+    for node in tree.es.indices:
+        node_weight = [i if i > 0 else 0 for i in som[node]]
+        if clusters is not None:
+            color = color_map(clusters[node])
+        else:
+            color = None
+        ax.pie(
+            node_weight, center=layout[node], radius=0.1,
+            wedgeprops={"edgecolor": color, 'linewidth': 2}
+        )
+    plt.axis("equal")
+    # if clusters is None:
+    #     plt.savefig("output/mst_igraph.png")
+    # else:
+    #     plt.savefig("output/clustered_mst_igraph.png")
+    plt.show()
+
 
