@@ -8,13 +8,14 @@ import numpy as np
 import igraph as ig
 
 
-def plot_SOM(som, xdim, ydim):
+def plot_SOM(som, xdim, ydim, labels):
     grid = GridSpec(xdim, ydim)
     for x in range(xdim):
         for y in range(ydim):
             plt.subplot(grid[x, y], aspect=1)
             plt.pie([i if i > 0 else 0 for i in som[x][y]])
     # plt.savefig("output/som.png")
+    plt.legend(labels)
     plt.show()
 
 
@@ -53,10 +54,10 @@ def plot_MST_networkx(tree, som, clusters=None):
 
 
 def draw_nodes(data, pos, ax, fig, color):
-    piesize = 0.03
+    piesize = 0.02
     xx, yy = ax.transData.transform(pos)  # figure coordinates
     xa, ya = fig.transFigure.inverted().transform((xx, yy))  # axes coordinates
-    a = plt.axes([xa-0.015, ya-0.015, piesize, piesize])
+    a = plt.axes([xa-0.01, ya-0.01, piesize, piesize])
     a.set_aspect('equal')
     if color is None:
         a.pie(data)

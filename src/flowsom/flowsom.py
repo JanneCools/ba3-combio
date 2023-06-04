@@ -2,6 +2,7 @@ import random
 import anndata
 
 from .plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
+from .som import SOM_builder
 
 import networkx as nx
 from sklearn.base import BaseEstimator
@@ -10,7 +11,6 @@ import pandas
 import readfcs
 from sklearn.cluster import AgglomerativeClustering
 from scipy.spatial.distance import pdist, squareform
-from sklearn_som.som import SOM
 import igraph as ig
 
 
@@ -26,7 +26,8 @@ class FlowSOM(BaseEstimator):
         xdim=10,
         ydim=10,
         networkx=True,
-        igraph=False
+        igraph=False,
+        minisom=False
     ):
         self.input = input
         self.pattern = pattern
@@ -38,6 +39,7 @@ class FlowSOM(BaseEstimator):
         self.n_clusters = n_clusters
         self.networkx = networkx
         self.igraph = igraph
+        self.minisom = minisom
         self.adata = None
         self.som = None
         self.np_data = None
@@ -77,17 +79,21 @@ class FlowSOM(BaseEstimator):
         radius = np.quantile(nhbrdist, 0.67)
 
         # make SOM
-        self.som = SOM(
-            m=xdim, n=ydim, dim=cols, sigma=radius/3, lr=0.05,
-            random_state=self.seed
+        # self.som = SOM(
+        #     m=xdim, n=ydim, dim=cols, sigma=radius/3, lr=0.05,
+        #     random_state=self.seed
+        # )
+        self.som = SOM_builder(
+            xdim=xdim, ydim=ydim, cols=cols, radius=radius/3, alpha=0.05,
+            seed=self.seed, minisom=self.minisom
         )
-        self.som.fit(data)
+        clusters = self.som.fit(data)
 
         # update anndata
-        self.adata.uns["som_clusters"] = np.reshape(self.som.cluster_centers_, (xdim*ydim, cols))
+        self.adata.uns["som_clusters"] = np.reshape(clusters, (xdim*ydim, cols))
 
         # plot SOM
-        plot_SOM(self.som.cluster_centers_, xdim, ydim)
+        plot_SOM(clusters, xdim, ydim, self.colsToUse)
         self.build_mst(xdim, ydim)
 
     def build_mst(self, xdim, ydim):
