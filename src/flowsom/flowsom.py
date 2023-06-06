@@ -1,5 +1,6 @@
 import random
 import anndata
+import fpdf
 
 from .plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
 from .som import SOM_builder
@@ -22,7 +23,7 @@ class FlowSOM(BaseEstimator):
         # input,
         pattern=".fcs",
         colsToUse=None,
-        n_clusters=10,
+        n_clusters=8,
         maxMeta=None,
         seed=10,
         xdim=10,
@@ -45,6 +46,8 @@ class FlowSOM(BaseEstimator):
         self.adata = None
         self.som = None
         self.np_data = None
+        self.pdf = FPDF()
+        self.pdf.add_page()
         random.seed(seed)
 
     def read_input(self, inp):
@@ -142,7 +145,7 @@ class FlowSOM(BaseEstimator):
 
     def cluster(self, n_clusters, xdim, ydim):
         clustering = AgglomerativeClustering(
-            n_clusters=n_clusters, linkage="average", metric="manhattan"
+            n_clusters=n_clusters, linkage="average"
         )
         clustering.fit(self.adata.uns["som_clusters"])
 
@@ -156,12 +159,31 @@ class FlowSOM(BaseEstimator):
     def set_params(self, **params):
         self.__dict__.update(params)
 
-    def fit(self, x, y=None):
+    def fit(self, x, dataset_name=None, y=None):
         self.read_input(x)
+        # write report
+        self.pdf.set_font('Arial', '', 18)
+        if dataset_name is None:
+            self.pdf.write(5, "FlowSOM algoritme\n")
+        else:
+            self.pdf.write(
+                10,
+                f"FlowSOM algoritme toegepast op de dataset {dataset_name}\n\n"
+            )
         # build SOM
         self.build_som(self.xdim, self.ydim, len(self.colsToUse))
         # perform meta-clustering
         self.cluster(self.n_clusters, self.xdim, self.ydim)
+
+        # write report
+        self.pdf.set_font('Arial', '', 14)
+        self.pdf.cell(w=100, h=100, txt="Self orginising map of the dataset")
+        # self.pdf.write(5, "Self organising map of the dataset:")
+        self.pdf.image("som.jpg", w=80, h=60)
+        self.pdf.write(5, "Minimal spanning tree of the SOM:\n")
+        self.pdf.image("mst_networkx.jpg", w=80, h=80)
+        self.pdf.write(5, "Metaclusters of the SOM:\n")
+        self.pdf.image("clusters_mst_networkx.jpg", w=100, h=100)
         return self
 
     def predict(self, x):
@@ -206,6 +228,6 @@ class FlowSOM(BaseEstimator):
         return self.adata
 
     def report(self, filename: str):
-        return
+        self.pdf.output(filename)
 
 

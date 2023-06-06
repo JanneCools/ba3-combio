@@ -13,6 +13,7 @@ def plot_SOM(som, xdim, ydim, labels):
             plt.subplot(grid[x, y], aspect=1)
             plt.pie([i if i > 0 else 0 for i in som[x][y]])
     fig.legend(labels, title="Markers", title_fontsize=15)
+    plt.savefig("som.jpg")
     plt.show()
     # plt.savefig("output/som.png")
 
@@ -53,12 +54,12 @@ def plot_MST_networkx(tree, som, labels, clusters=None):
         plt.legend([f'Cluster {i}' for i in range(1, np.max(clusters)+1)],
                    bbox_to_anchor=[-10, 20], loc="center",
                    fontsize="20", title="Markers", title_fontsize=25)
-    plt.show()
     # save the plot
-    # if clusters is None:
-    #     plt.savefig("../output/mst_networkx.png")
-    # else:
-    #     plt.savefig("output/clusters_mst_networkx.png")
+    if clusters is None:
+        plt.savefig("mst_networkx.jpg")
+    else:
+        plt.savefig("clusters_mst_networkx.jpg")
+    plt.show()
 
 
 def draw_nodes(data, pos, ax, fig, color: str = None):
@@ -108,10 +109,10 @@ def plot_MST_igraph(tree, som, clusters=None):
             wedgeprops={"edgecolor": color, 'linewidth': 2}
         )
     plt.axis("equal")
-    # if clusters is None:
-    #     plt.savefig("output/mst_igraph.png")
-    # else:
-    #     plt.savefig("output/clustered_mst_igraph.png")
+    if clusters is None:
+        plt.savefig("mst_igraph.jpg")
+    else:
+        plt.savefig("clusters_mst_igraph.jpg")
     plt.show()
 
 
