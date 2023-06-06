@@ -13,6 +13,8 @@ from sklearn.cluster import AgglomerativeClustering
 from scipy.spatial.distance import pdist, squareform
 import igraph as ig
 
+from PIL import Image
+from fpdf import FPDF
 
 class FlowSOM(BaseEstimator):
     def __init__(
@@ -117,7 +119,7 @@ class FlowSOM(BaseEstimator):
             self.adata.uns["mst_clustering"] = tree
         else:
             self.adata.uns["mst_som"] = tree
-        plot_MST_networkx(tree, weights, clusters)
+        plot_MST_networkx(tree, weights, self.colsToUse, clusters)
 
     def __build_mst_igraph(self, xdim, ydim, clusters=None):
         dim = xdim * ydim
@@ -170,6 +172,7 @@ class FlowSOM(BaseEstimator):
         else:
             adata = x
         data = adata.X
+
         # find som winner for every point in x
         winners = self.som.predict(data)
         clusters = [self.adata.uns["metaclusters"][i] for i in winners]
@@ -203,9 +206,6 @@ class FlowSOM(BaseEstimator):
         return self.adata
 
     def report(self, filename: str):
-        report = open("../../verslag.pdf", "r")
-        lines = report.readlines()
+        return
 
-        output = open(filename, "w")
-        output.writelines(lines)
 
