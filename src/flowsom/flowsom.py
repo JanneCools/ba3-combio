@@ -1,6 +1,5 @@
 import random
 import anndata
-import fpdf
 
 from .plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
 from .som import SOM_builder
@@ -14,7 +13,6 @@ from sklearn.cluster import AgglomerativeClustering
 from scipy.spatial.distance import pdist, squareform
 import igraph as ig
 
-from PIL import Image
 from fpdf import FPDF
 
 class FlowSOM(BaseEstimator):
@@ -84,10 +82,6 @@ class FlowSOM(BaseEstimator):
         radius = np.quantile(nhbrdist, 0.67)
 
         # make SOM
-        # self.som = SOM(
-        #     m=xdim, n=ydim, dim=cols, sigma=radius/3, lr=0.05,
-        #     random_state=self.seed
-        # )
         self.som = SOM_builder(
             xdim=xdim, ydim=ydim, cols=cols, radius=radius/3, alpha=0.05,
             seed=self.seed, minisom=self.minisom
@@ -141,7 +135,7 @@ class FlowSOM(BaseEstimator):
             self.adata.uns["mst_clustering"] = tree
         else:
             self.adata.uns["mst_som"] = tree
-        plot_MST_igraph(tree, som_weights, clusters)
+        plot_MST_igraph(tree, som_weights, self.colsToUse, clusters)
 
     def cluster(self, n_clusters, xdim, ydim):
         clustering = AgglomerativeClustering(
@@ -161,28 +155,44 @@ class FlowSOM(BaseEstimator):
 
     def fit(self, x, dataset_name=None, y=None):
         self.read_input(x)
-        # write report
-        self.pdf.set_font('Arial', '', 18)
+        # write basic information in report
+        self.pdf.set_font("Arial", "", 18)
+        self.pdf.write(10, "FlowSOM algoritme\n\n")
+        self.pdf.set_font("Arial", "", 14)
         if dataset_name is None:
-            self.pdf.write(5, "FlowSOM algoritme\n")
+            self.pdf.write(5, "Dataset: naamloos\n")
         else:
-            self.pdf.write(
-                10,
-                f"FlowSOM algoritme toegepast op de dataset {dataset_name}\n\n"
-            )
+            self.pdf.write(5, f"Dataset: {dataset_name}\n\n")
+        self.pdf.write(5, f"Grootte dataset: {len(self.adata.X)} samples\n\n")
+        self.pdf.write(5, f"Gebruikte markers: {self.colsToUse}\n\n")
+        self.pdf.write(5, f"Grid dimensies: {self.xdim}x{self.ydim}")
+        self.pdf.add_page()
         # build SOM
         self.build_som(self.xdim, self.ydim, len(self.colsToUse))
         # perform meta-clustering
         self.cluster(self.n_clusters, self.xdim, self.ydim)
 
-        # write report
+        # add SOM to report
         self.pdf.set_font('Arial', '', 14)
-        self.pdf.cell(w=100, h=100, txt="Self orginising map of the dataset")
-        # self.pdf.write(5, "Self organising map of the dataset:")
-        self.pdf.image("som.jpg", w=80, h=60)
-        self.pdf.write(5, "Minimal spanning tree of the SOM:\n")
-        self.pdf.image("mst_networkx.jpg", w=80, h=80)
-        self.pdf.write(5, "Metaclusters of the SOM:\n")
+        self.pdf.write(5, "Self organising map (SOM) of the dataset\n\n")
+        self.pdf.set_font('Arial', '', 10)
+        if self.minisom:
+            self.pdf.write(5, "Gebruikte SOM-bibliotheek: MiniSOM\n\n")
+        else:
+            self.pdf.write(5, "Gebruikte SOM-bibliotheek: sklearn-som\n\n")
+        self.pdf.write(5, f"Learning rate: 0.05\n\n")
+        self.pdf.write(5, "Radius: 0,67 quantile van alle buurafstanden, via de Chebyshev metriek\n\n")
+        self.pdf.write(5, "Verkregen som-clusters:\n")
+        self.pdf.image("som.jpg", w=100, h=80)
+        # add mst to report
+        self.pdf.write(5, "Minimal spanning tree van de SOM:\n\n")
+        self.pdf.image("mst_networkx.jpg", w=100, h=100)
+        # add metaclustering to report
+        self.pdf.set_font('Arial', '', 14)
+        self.pdf.write(5, "Metaclusters van de SOM\n")
+        self.pdf.set_font('Arial', '', 10)
+        self.pdf.write(5, f"Aantal clusters voor metaclustering: {self.n_clusters}\n")
+        self.pdf.write(5, "Dichtste afstand via average linking\n\n")
         self.pdf.image("clusters_mst_networkx.jpg", w=100, h=100)
         return self
 
