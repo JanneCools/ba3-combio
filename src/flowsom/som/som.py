@@ -11,8 +11,8 @@ class SOM_builder:
         self.minisom = minisom
         if minisom:
             self.som = MiniSom(
-                x=xdim, y=ydim, input_len=cols, learning_rate=alpha, sigma=radius,
-                random_seed=seed
+                x=xdim, y=ydim, input_len=cols, learning_rate=alpha,
+                sigma=radius, random_seed=seed, topology="hexagonal"
             )
         else:
             self.som = SOM(
@@ -23,16 +23,16 @@ class SOM_builder:
     def fit(self, data):
         if self.minisom:
             self.som.random_weights_init(data)
-            self.som.train(data, verbose=True, num_iteration=1000)
+            self.som.train(
+                data, verbose=True, num_iteration=2000
+            )
             return self.som.get_weights()
         self.som.fit(data)
         return self.som.cluster_centers_
 
     def predict(self, data):
         if self.minisom:
-            print(self.som.win_map(data))
             win_map = list(self.som.win_map(data).keys())
-            y = self.som.winner(data)
             x = []
             for d in data:
                 winner = self.som.winner(d)
