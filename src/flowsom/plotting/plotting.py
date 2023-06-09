@@ -104,6 +104,7 @@ def draw_nodes(data, pos, ax, fig, colors: list, color: str = "black"):
     )
     a.add_patch(rect)
 
+
 def plot_MST_igraph(tree, som, labels, clusters=None):
     plt.figure(figsize=(15, 15))
     layout = tree.layout_kamada_kawai()
@@ -150,12 +151,12 @@ def plot_MST_igraph(tree, som, labels, clusters=None):
         if clusters is not None:
             patch = mpatches.Patch(color=color, label=f'Cluster {i}')
         handles.append(patch)
-    plt.legend(handles=handles, loc="upper right",
+    plt.legend(handles=handles, loc="upper left",
                fontsize=15, title="Markers", title_fontsize=20)
     if clusters is not None:
-        plt.legend(handles=handles, loc="upper right",
+        plt.legend(handles=handles, loc="upper left",
                    fontsize=15, title="Clusters", title_fontsize=20)
-
+    # save the plot
     if clusters is None:
         plt.savefig("mst_igraph.jpg")
     else:

@@ -3,6 +3,7 @@ import anndata
 
 from .plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
 from .som import SOM_builder
+from .report import write_intro, write_som, write_mst, write_metaclustering
 
 import networkx as nx
 from sklearn.base import BaseEstimator
@@ -14,15 +15,14 @@ from scipy.spatial.distance import pdist, squareform
 import igraph as ig
 
 from fpdf import FPDF
+import time
 
 class FlowSOM(BaseEstimator):
     def __init__(
         self,
-        # input,
-        pattern=".fcs",
         colsToUse=None,
         n_clusters=8,
-        maxMeta=None,
+        silent=False,
         seed=10,
         xdim=10,
         ydim=10,
@@ -30,23 +30,28 @@ class FlowSOM(BaseEstimator):
         igraph=False,
         minisom=False
     ):
-        self.input = input
-        self.pattern = pattern
-        self.maxMeta = maxMeta
-        self.seed = seed
+        # parameters for algorithms
         self.xdim = xdim
         self.ydim = ydim
         self.colsToUse = colsToUse
         self.n_clusters = n_clusters
+        self.silent = silent
         self.networkx = networkx
         self.igraph = igraph
         self.minisom = minisom
+        self.seed = seed
+        random.seed(self.seed)
+
+        # data to be stored
         self.adata = None
         self.som = None
         self.np_data = None
+
+        # data for the report
         self.pdf = FPDF()
         self.pdf.add_page()
-        random.seed(seed)
+        self.som_time = 0
+        self.clustering_time = 0
 
     def read_input(self, inp):
         # make anndata object
@@ -76,6 +81,7 @@ class FlowSOM(BaseEstimator):
     def build_som(self, xdim, ydim, cols):
         data = self.adata.uns["used_data"]
 
+        start = time.process_time()
         # calculate radius
         grid = [(x, y) for x in range(xdim) for y in range(ydim)]
         nhbrdist = squareform(pdist(grid, metric="chebyshev"))
@@ -87,6 +93,10 @@ class FlowSOM(BaseEstimator):
             seed=self.seed, minisom=self.minisom
         )
         clusters = self.som.fit(data)
+        stop = time.process_time()
+        self.som_time = stop-start
+        if not self.silent:
+            print(f"start: {start}\nstop: {stop}\nTijd voor SOM: {stop-start}")
 
         # update anndata
         self.adata.uns["som_clusters"] = np.reshape(clusters, (xdim*ydim, cols))
@@ -138,10 +148,15 @@ class FlowSOM(BaseEstimator):
         plot_MST_igraph(tree, som_weights, self.colsToUse, clusters)
 
     def cluster(self, n_clusters, xdim, ydim):
+        start = time.process_time()
         clustering = AgglomerativeClustering(
             n_clusters=n_clusters, linkage="average"
         )
         clustering.fit(self.adata.uns["som_clusters"])
+        stop = time.process_time()
+        self.clustering_time = stop-start
+        if not self.silent:
+            print(f"Start: {start}\nStop: {stop}\nTijd voor metaclustering: {stop-start}")
 
         # update anndata
         self.adata.uns["metaclusters"] = clustering.labels_
@@ -155,45 +170,24 @@ class FlowSOM(BaseEstimator):
 
     def fit(self, x, dataset_name=None, y=None):
         self.read_input(x)
-        # write basic information in report
-        self.pdf.set_font("Arial", "", 18)
-        self.pdf.write(10, "FlowSOM algoritme\n\n")
-        self.pdf.set_font("Arial", "", 14)
-        if dataset_name is None:
-            self.pdf.write(5, "Dataset: naamloos\n")
-        else:
-            self.pdf.write(5, f"Dataset: {dataset_name}\n\n")
-        self.pdf.write(5, f"Grootte dataset: {len(self.adata.X)} samples\n\n")
-        self.pdf.write(5, f"Gebruikte markers: {self.colsToUse}\n\n")
-        self.pdf.write(5, f"Grid dimensies: {self.xdim}x{self.ydim}")
-        self.pdf.add_page()
-        # build SOM
+
+        # write intro in report
+        write_intro(
+            pdf=self.pdf, size=len(self.adata.X), colsToUse=self.colsToUse,
+            xdim=self.xdim, ydim=self.ydim, dataset_name=dataset_name
+        )
+
+        # build SOM and perform meta-clustering
         self.build_som(self.xdim, self.ydim, len(self.colsToUse))
-        # perform meta-clustering
         self.cluster(self.n_clusters, self.xdim, self.ydim)
 
-        # add SOM to report
-        self.pdf.set_font('Arial', '', 14)
-        self.pdf.write(5, "Self organising map (SOM) of the dataset\n\n")
-        self.pdf.set_font('Arial', '', 10)
-        if self.minisom:
-            self.pdf.write(5, "Gebruikte SOM-bibliotheek: MiniSOM\n\n")
-        else:
-            self.pdf.write(5, "Gebruikte SOM-bibliotheek: sklearn-som\n\n")
-        self.pdf.write(5, f"Learning rate: 0.05\n\n")
-        self.pdf.write(5, "Radius: 0,67 quantile van alle buurafstanden, via de Chebyshev metriek\n\n")
-        self.pdf.write(5, "Verkregen som-clusters:\n")
-        self.pdf.image("som.jpg", w=100, h=80)
-        # add mst to report
-        self.pdf.write(5, "Minimal spanning tree van de SOM:\n\n")
-        self.pdf.image("mst_networkx.jpg", w=100, h=100)
-        # add metaclustering to report
-        self.pdf.set_font('Arial', '', 14)
-        self.pdf.write(5, "Metaclusters van de SOM\n")
-        self.pdf.set_font('Arial', '', 10)
-        self.pdf.write(5, f"Aantal clusters voor metaclustering: {self.n_clusters}\n")
-        self.pdf.write(5, "Dichtste afstand via average linking\n\n")
-        self.pdf.image("clusters_mst_networkx.jpg", w=100, h=100)
+        # add SOM, mst and metaclustering to report
+        write_som(pdf=self.pdf, minisom=self.minisom, time=self.som_time)
+        write_mst(pdf=self.pdf, networkx=self.networkx, igraph=self.igraph)
+        write_metaclustering(
+            pdf=self.pdf, n_clusters=self.n_clusters, networkx=self.networkx,
+            igraph=self.igraph, time=self.clustering_time
+        )
         return self
 
     def predict(self, x):
@@ -210,12 +204,26 @@ class FlowSOM(BaseEstimator):
         clusters = [self.adata.uns["metaclusters"][i] for i in winners]
         return clusters
 
-    def fit_predict(self, x, y=None):
+    def fit_predict(self, x, dataset_name=None, y=None):
         self.read_input(x)
+        # write intro in report
+        write_intro(
+            pdf=self.pdf, size=len(self.adata.X), colsToUse=self.colsToUse,
+            xdim=self.xdim, ydim=self.ydim, dataset_name=dataset_name
+        )
+
         # build SOM
         self.build_som(self.xdim, self.ydim, len(self.colsToUse))
         # metaclustering
         self.cluster(self.n_clusters, self.xdim, self.ydim)
+
+        # add SOM, mst and metaclustering to report
+        write_som(pdf=self.pdf, minisom=self.minisom, time=self.som_time)
+        write_mst(pdf=self.pdf, networkx=self.networkx, igraph=self.igraph)
+        write_metaclustering(
+            pdf=self.pdf, n_clusters=self.n_clusters, networkx=self.networkx,
+            igraph=self.igraph, time=self.clustering_time
+        )
 
         # find metacluster for every point in x
         winners = self.som.predict(self.adata.uns["used_data"])
@@ -227,7 +235,6 @@ class FlowSOM(BaseEstimator):
         :param lazy: dask if lazy else pandas
         :return: DataFrame van de ingegeven data
         """
-        # raise NotImplementedError
         return self.adata.to_df()
 
     def as_adata(self, lazy=True):
