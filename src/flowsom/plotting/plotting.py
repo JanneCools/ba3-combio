@@ -30,7 +30,7 @@ def plot_SOM(som, xdim, ydim, labels):
         patch = mpatches.Patch(color=color, label=labels[i])
         handles.append(patch)
     fig.legend(handles=handles, title="Markers", title_fontsize=15)
-    # plt.savefig("som.jpg")
+    plt.savefig("som.jpg")
     plt.show()
 
 
