@@ -30,7 +30,7 @@ def plot_SOM(som, xdim, ydim, labels):
         patch = mpatches.Patch(color=color, label=labels[i])
         handles.append(patch)
     fig.legend(handles=handles, title="Markers", title_fontsize=15)
-    plt.savefig("som.jpg")
+    # plt.savefig("som.jpg")
     plt.show()
 
 
@@ -79,10 +79,10 @@ def plot_MST_networkx(tree, som, labels, clusters=None):
         plt.legend(handles=handles, bbox_to_anchor=[-10, 20], loc="center",
                    fontsize="20", title="Clusters", title_fontsize=25)
     # save the plot
-    if clusters is None:
-        plt.savefig("mst_networkx.jpg")
-    else:
-        plt.savefig("clusters_mst_networkx.jpg")
+    # if clusters is None:
+    #     plt.savefig("mst_networkx.jpg")
+    # else:
+    #     plt.savefig("clusters_mst_networkx.jpg")
     plt.show()
 
 def draw_nodes(data, pos, ax, fig, colors: list, color: str = "black"):
@@ -157,10 +157,10 @@ def plot_MST_igraph(tree, som, labels, clusters=None):
         plt.legend(handles=handles, loc="upper left",
                    fontsize=15, title="Clusters", title_fontsize=20)
     # save the plot
-    if clusters is None:
-        plt.savefig("mst_igraph.jpg")
-    else:
-        plt.savefig("clusters_mst_igraph.jpg")
+    # if clusters is None:
+    #     plt.savefig("mst_igraph.jpg")
+    # else:
+    #     plt.savefig("clusters_mst_igraph.jpg")
     plt.show()
 
 
