@@ -80,9 +80,9 @@ def plot_MST_networkx(tree, som, labels, clusters=None):
                    fontsize="20", title="Clusters", title_fontsize=25)
     # save the plot
     if clusters is None:
-        plt.savefig("mst_networkx.jpg")
+        plt.savefig("mstnetworkx.jpg")
     else:
-        plt.savefig("clusters_mst_networkx.jpg")
+        plt.savefig("clustersmstnetworkx.jpg")
     plt.show()
 
 def draw_nodes(data, pos, ax, fig, colors: list, color: str = "black"):

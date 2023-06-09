@@ -39,7 +39,7 @@ def write_som(pdf: fpdf.FPDF, minisom: bool, time: int):
 def write_mst(pdf: fpdf.FPDF, networkx: bool, igraph: bool):
     if networkx:
         pdf.write(5, "Minimal spanning tree of the SOM with NetworkX:\n")
-        pdf.image("mst_networkx.jpg", w=90, h=90)
+        pdf.image("mstnetworkx.jpg", w=90, h=90)
     if igraph:
         pdf.write(5, "Minimal spanning tree of the SOM with IGraph:\n")
         pdf.image("mst_igraph.jpg", w=90, h=90)
@@ -60,7 +60,7 @@ def write_metaclustering(
     pdf.write(5, f"Training time: {time} seconds\n")
     if networkx:
         pdf.write(5, "Visualisation using NetworkX:\n")
-        pdf.image("clusters_mst_networkx.jpg", w=90, h=90)
+        pdf.image("clustersmstnetworkx.jpg", w=90, h=90)
     if igraph:
         pdf.write(5, "Visualisation using IGraph:\n")
         pdf.image("clusters_mst_igraph.jpg", w=90, h=90)
