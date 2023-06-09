@@ -1,3 +1,4 @@
+import math
 import random
 import anndata
 
@@ -99,7 +100,8 @@ class FlowSOM(BaseEstimator):
             print(f"start: {start}\nstop: {stop}\nTijd voor SOM: {stop-start}")
 
         # update anndata
-        self.adata.uns["som_clusters"] = np.reshape(clusters, (xdim*ydim, cols))
+        temp = np.reshape(clusters, (xdim*ydim, cols))
+        self.adata.uns["som_clusters"] = np.nan_to_num(temp)
 
         # plot SOM
         plot_SOM(clusters, xdim, ydim, self.colsToUse)
