@@ -1,6 +1,5 @@
 from sklearn_som.som import SOM
 from minisom import MiniSom
-import numpy as np
 
 
 class SOM_builder:

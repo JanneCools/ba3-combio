@@ -14,7 +14,7 @@ def plot_SOM(som, xdim, ydim, labels):
     map = plt.get_cmap("rainbow")
     colors = [map(i / n) for i in range(1, n + 1)]
 
-    # divide image into a grid to show the som nodes
+    # divide image into a grid to show the util nodes
     fig = plt.figure(figsize=(11, 8))
     grid = GridSpec(xdim, ydim)
     for x in range(xdim):
@@ -73,10 +73,10 @@ def plot_MST_networkx(tree, som, labels, clusters=None):
         if clusters is not None:
             patch = mpatches.Patch(color=color, label=f'Cluster {i}')
         handles.append(patch)
-    plt.legend(handles=handles, bbox_to_anchor=[-10, 20], loc="center",
+    fig.legend(handles=handles, loc="upper left",
                fontsize="20", title="Markers", title_fontsize=25)
     if clusters is not None:
-        plt.legend(handles=handles, bbox_to_anchor=[-10, 20], loc="center",
+        fig.legend(handles=handles, loc="upper left",
                    fontsize="20", title="Clusters", title_fontsize=25)
     # save the plot
     if clusters is None:

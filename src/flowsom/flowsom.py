@@ -1,19 +1,14 @@
-import math
-import random
-import anndata
-
 from .plotting import plot_SOM, plot_MST_networkx, plot_MST_igraph
-from .som import SOM_builder
+from .util import SOM_builder, read_input
 from .report import write_intro, write_som, write_mst, write_metaclustering
 
 import networkx as nx
 from sklearn.base import BaseEstimator
 import numpy as np
-import pandas
-import readfcs
 from sklearn.cluster import AgglomerativeClustering
 from scipy.spatial.distance import pdist, squareform
 import igraph as ig
+import random
 
 from fpdf import FPDF
 import time
@@ -54,31 +49,6 @@ class FlowSOM(BaseEstimator):
         self.som_time = 0
         self.clustering_time = 0
 
-    def read_input(self, inp):
-        # make anndata object
-        if isinstance(inp, str):
-            self.adata = readfcs.read(inp)
-        elif isinstance(inp, np.ndarray) or isinstance(inp, pandas.DataFrame):
-            self.adata = anndata.AnnData(inp)
-
-        # remove unused columns
-        if self.colsToUse is None or "meta" not in self.adata.uns:
-            self.colsToUse = self.adata.var_names
-            self.adata.uns["used_data"] = self.adata.X
-        else:
-            self.remove_unused_data(self.colsToUse)
-
-    def remove_unused_data(self, columns):
-        cols = self.adata.uns["meta"]["channels"]["$PnN"]
-        indices = cols.index.astype(np.intc)
-        unused = [indices[i] for i, col in enumerate(cols) if col not in columns]
-        unused = np.flip(np.sort(unused))
-        data = self.adata.X
-        for index in unused:
-            data = np.delete(data, index-1, axis=1)
-        # only save the data from the used columns
-        self.adata.uns["used_data"] = data
-
     def build_som(self, xdim, ydim, cols):
         data = self.adata.uns["used_data"]
 
@@ -117,7 +87,7 @@ class FlowSOM(BaseEstimator):
         nodes = xdim * ydim
         graph = nx.Graph()
 
-        # print(som)
+        # print(util)
         weights = self.adata.uns["som_clusters"]
         for x in range(nodes):
             for y in range(x + 1, nodes):
@@ -171,7 +141,9 @@ class FlowSOM(BaseEstimator):
         self.__dict__.update(params)
 
     def fit(self, x, dataset_name=None, y=None):
-        self.read_input(x)
+        self.adata = read_input(x, self.colsToUse, self.adata)
+        if self.colsToUse is None or "meta" not in self.adata.uns:
+            self.colsToUse = self.adata.var_names
 
         # write intro in report
         write_intro(
@@ -193,21 +165,18 @@ class FlowSOM(BaseEstimator):
         return self
 
     def predict(self, x):
-        if isinstance(x, str):
-            adata = readfcs.read(x)
-        elif isinstance(x, np.ndarray):
-            adata = anndata.AnnData(x)
-        else:
-            adata = x
-        data = adata.X
+        adata = read_input(x, self.colsToUse)
+        data = adata.uns["used_data"]
 
-        # find som winner for every point in x
+        # find util winner for every point in x
         winners = self.som.predict(data)
         clusters = [self.adata.uns["metaclusters"][i] for i in winners]
         return clusters
 
     def fit_predict(self, x, dataset_name=None, y=None):
-        self.read_input(x)
+        self.adata = read_input(x, self.colsToUse, self.adata)
+        if self.colsToUse is None or "meta" not in self.adata.uns:
+            self.colsToUse = self.adata.var_names
         # write intro in report
         write_intro(
             pdf=self.pdf, size=len(self.adata.X), colsToUse=self.colsToUse,
