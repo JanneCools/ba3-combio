@@ -42,7 +42,7 @@ def remove_unused_data(adata: AnnData, columns: list) -> AnnData:
     data = adata.X
     # remove all unused columns
     for index in unused:
-        data = np.delete(data, index-1, axis=1)
+        data = np.delete(data, index - 1, axis=1)
     # save the remaining data in the AnnData
     adata.uns["used_data"] = data
     return adata
@@ -67,7 +67,9 @@ def read_input(inp, colsToUse: list, adata: AnnData = None) -> AnnData:
     elif isinstance(int, AnnData):
         adata = inp
     if adata is None:
-        raise ValueError("Input must be a file, directory, numpy object, pandas dataframe or an AnnData")
+        raise ValueError(
+            "Input must be a file, directory, numpy object, pandas dataframe or an AnnData"
+        )
 
     # remove unused columns
     if colsToUse is None or "meta" not in adata.uns:
@@ -75,4 +77,3 @@ def read_input(inp, colsToUse: list, adata: AnnData = None) -> AnnData:
     else:
         adata = remove_unused_data(adata, colsToUse)
     return adata
-
