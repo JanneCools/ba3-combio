@@ -1,3 +1,4 @@
+import matplotlib.axes
 import networkx as nx
 from matplotlib.gridspec import GridSpec
 import matplotlib.pyplot as plt
@@ -6,15 +7,15 @@ import numpy as np
 import igraph as ig
 
 
-def plot_SOM(som, xdim, ydim, labels):
-    # prepare arguments for bar plot
+def plot_SOM(som: np.ndarray, xdim: int, ydim: int, labels: list):
+    # prepare arguments for bar plots
     n = len(som[0][0])
     coords = np.linspace(0.0, 2 * np.pi, n, endpoint=False)
     width = 2 * np.pi / n
     map = plt.get_cmap("rainbow")
     colors = [map(i / n) for i in range(1, n + 1)]
 
-    # divide image into a grid to show the util nodes
+    # divide image into a grid to show the som nodes
     fig = plt.figure(figsize=(11, 8))
     grid = GridSpec(xdim, ydim)
     for x in range(xdim):
@@ -32,9 +33,15 @@ def plot_SOM(som, xdim, ydim, labels):
     fig.legend(handles=handles, title="Markers", title_fontsize=15)
     plt.savefig("som.jpg")
     plt.show()
+    plt.close(fig)
 
 
-def plot_MST_networkx(tree, som, labels, clusters=None):
+def plot_MST_networkx(
+        tree: dict,
+        som: np.ndarray,
+        labels: list,
+        clusters: list = None
+):
     fig = plt.figure(figsize=(20, 20))
 
     # draw edges of tree (without nodes)
@@ -66,6 +73,7 @@ def plot_MST_networkx(tree, som, labels, clusters=None):
             draw_nodes(node_weight, pos[node], ax, fig, colors=colors, color=color)
         else:
             draw_nodes(node_weight, pos[node], ax, fig, colors=colors)
+
     # make legend
     handles = []
     for i, color in enumerate(colors):
@@ -84,8 +92,17 @@ def plot_MST_networkx(tree, som, labels, clusters=None):
     else:
         plt.savefig("ClustersMSTNetworkX.jpg")
     plt.show()
+    plt.close(fig)
 
-def draw_nodes(data, pos, ax, fig, colors: list, color: str = "black"):
+
+def draw_nodes(
+        data: list,
+        pos: tuple,
+        ax: matplotlib.axes.Axes,
+        fig: matplotlib.pyplot.Figure,
+        colors: list,
+        color: str = "black"
+):
     piesize = 0.02
     xx, yy = ax.transData.transform(pos)  # figure coordinates
     xa, ya = fig.transFigure.inverted().transform((xx, yy))  # axes coordinates
@@ -105,7 +122,12 @@ def draw_nodes(data, pos, ax, fig, colors: list, color: str = "black"):
     a.add_patch(rect)
 
 
-def plot_MST_igraph(tree, som, labels, clusters=None):
+def plot_MST_igraph(
+        tree: dict,
+        som: np.ndarray,
+        labels: list,
+        clusters: list = None
+):
     plt.figure(figsize=(15, 15))
     layout = tree.layout_kamada_kawai()
 
@@ -141,6 +163,7 @@ def plot_MST_igraph(tree, som, labels, clusters=None):
             wedgeprops={"edgecolor": color, 'linewidth': 2}
         )
     plt.axis("equal")
+
     # make legend
     markers = len(som[0])
     map = plt.get_cmap("rainbow")
