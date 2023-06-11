@@ -8,6 +8,13 @@ import igraph as ig
 
 
 def plot_SOM(som: np.ndarray, xdim: int, ydim: int, labels: list):
+    """
+    Plot the SOM-nodes in a xdim-ydim grid
+    :param som: the SOM-nodes
+    :param xdim: dimension on x-axis
+    :param ydim: dimension on y-axis
+    :param labels: the markers present in the SOM-nodes
+    """
     # prepare arguments for bar plots
     n = len(som[0][0])
     coords = np.linspace(0.0, 2 * np.pi, n, endpoint=False)
@@ -36,12 +43,14 @@ def plot_SOM(som: np.ndarray, xdim: int, ydim: int, labels: list):
     plt.close(fig)
 
 
-def plot_MST_networkx(
-        tree: dict,
-        som: np.ndarray,
-        labels: list,
-        clusters: list = None
-):
+def plot_MST_networkx(tree: dict, som: np.ndarray, labels: list, clusters: list = None):
+    """
+    Plot the minimal spanning tree of the SOM-nodes using NetworkX
+    :param tree: the minimal spanning tree
+    :param som: the SOM-nodes
+    :param labels: the markers present in the SOM-nodes
+    :param clusters: the clusters which the SOM-nodes belong to
+    """
     fig = plt.figure(figsize=(20, 20))
 
     # draw edges of tree (without nodes)
@@ -51,14 +60,14 @@ def plot_MST_networkx(
     x = [x for (x, _) in pos.values()]
     y = [y for (_, y) in pos.values()]
 
-    plt.xlim(np.min(x)-10, np.max(x)+10)
-    plt.ylim(np.min(y)-10, np.max(y)+10)
+    plt.xlim(np.min(x) - 10, np.max(x) + 10)
+    plt.ylim(np.min(y) - 10, np.max(y) + 10)
 
     ax = plt.gca()
 
     # get colors for the edges of the nodes
     if clusters is not None:
-        color_map = plt.cm.get_cmap('rainbow', np.max(clusters)+1)
+        color_map = plt.cm.get_cmap("rainbow", np.max(clusters) + 1)
 
     # get colors for the markers
     markers = len(som[0])
@@ -79,13 +88,23 @@ def plot_MST_networkx(
     for i, color in enumerate(colors):
         patch = mpatches.Patch(color=color, label=labels[i])
         if clusters is not None:
-            patch = mpatches.Patch(color=color, label=f'Cluster {i}')
+            patch = mpatches.Patch(color=color, label=f"Cluster {i}")
         handles.append(patch)
-    fig.legend(handles=handles, loc="upper left",
-               fontsize="20", title="Markers", title_fontsize=25)
+    fig.legend(
+        handles=handles,
+        loc="upper left",
+        fontsize="20",
+        title="Markers",
+        title_fontsize=25,
+    )
     if clusters is not None:
-        fig.legend(handles=handles, loc="upper left",
-                   fontsize="20", title="Clusters", title_fontsize=25)
+        fig.legend(
+            handles=handles,
+            loc="upper left",
+            fontsize="20",
+            title="Clusters",
+            title_fontsize=25,
+        )
     # save the plot
     if clusters is None:
         plt.savefig("MSTNetworkX.jpg")
@@ -96,38 +115,52 @@ def plot_MST_networkx(
 
 
 def draw_nodes(
-        data: list,
-        pos: tuple,
-        ax: matplotlib.axes.Axes,
-        fig: matplotlib.pyplot.Figure,
-        colors: list,
-        color: str = "black"
+    data: list,
+    pos: tuple,
+    ax: matplotlib.axes.Axes,
+    fig: matplotlib.pyplot.Figure,
+    colors: list,
+    color: str = "black",
 ):
+    """
+    Draw a node of the tree using a bar plot
+    :param data: a SOM-node
+    :param pos: the position of the node (x-coord, y-coord)
+    :param ax: the axes of the picture
+    :param fig: the figure
+    :param colors: the colors to use in the bar plot
+    :param color: the color for the circle around the bar plot
+    """
     piesize = 0.02
     xx, yy = ax.transData.transform(pos)  # figure coordinates
     xa, ya = fig.transFigure.inverted().transform((xx, yy))  # axes coordinates
-    a = plt.axes([xa-0.01, ya-0.01, piesize, piesize], polar=True)
+    a = plt.axes([xa - 0.01, ya - 0.01, piesize, piesize], polar=True)
     a.axis("off")
     a.set_xticklabels([])
     a.set_yticklabels([])
     # prepare arguments for bar plot
     x = np.linspace(0.0, 2 * np.pi, len(data))
-    width = 2 * np.pi / (len(data)+1)
+    width = 2 * np.pi / (len(data) + 1)
     a.bar(x=x, height=data, width=width, color=colors, align="center")
     # place rectangle (that becomes circle) around the bar plot
     rect = mpatches.Rectangle(
-        (0, np.max(data)*1.05), width=2*np.pi, height=np.max(data)/6,
-        facecolor=color, linewidth=0
+        (0, np.max(data) * 1.05),
+        width=2 * np.pi,
+        height=np.max(data) / 6,
+        facecolor=color,
+        linewidth=0,
     )
     a.add_patch(rect)
 
 
-def plot_MST_igraph(
-        tree: dict,
-        som: np.ndarray,
-        labels: list,
-        clusters: list = None
-):
+def plot_MST_igraph(tree: dict, som: np.ndarray, labels: list, clusters: list = None):
+    """
+    Plot the minimal spanning tree of the SOM-nodes using IGraph
+    :param tree: the minimal spanning tree
+    :param som: the SOM-nodes
+    :param labels: the markers present in the SOM-nodes
+    :param clusters: the clusters which the SOM-nodes belong to
+    """
     plt.figure(figsize=(15, 15))
     layout = tree.layout_kamada_kawai()
 
@@ -149,7 +182,7 @@ def plot_MST_igraph(
     )
     # get colors for the edges of the nodes
     if clusters is not None:
-        color_map = plt.cm.get_cmap('rainbow', np.max(clusters)+1)
+        color_map = plt.cm.get_cmap("rainbow", np.max(clusters) + 1)
 
     # plot the nodes
     for node in tree.es.indices:
@@ -159,8 +192,10 @@ def plot_MST_igraph(
         else:
             color = None
         ax.pie(
-            node_weight, center=layout[node], radius=0.1,
-            wedgeprops={"edgecolor": color, 'linewidth': 2}
+            node_weight,
+            center=layout[node],
+            radius=0.1,
+            wedgeprops={"edgecolor": color, "linewidth": 2},
         )
     plt.axis("equal")
 
@@ -172,18 +207,26 @@ def plot_MST_igraph(
     for i, color in enumerate(colors):
         patch = mpatches.Patch(color=color, label=labels[i])
         if clusters is not None:
-            patch = mpatches.Patch(color=color, label=f'Cluster {i}')
+            patch = mpatches.Patch(color=color, label=f"Cluster {i}")
         handles.append(patch)
-    plt.legend(handles=handles, loc="upper left",
-               fontsize=15, title="Markers", title_fontsize=20)
+    plt.legend(
+        handles=handles,
+        loc="upper left",
+        fontsize=15,
+        title="Markers",
+        title_fontsize=20,
+    )
     if clusters is not None:
-        plt.legend(handles=handles, loc="upper left",
-                   fontsize=15, title="Clusters", title_fontsize=20)
+        plt.legend(
+            handles=handles,
+            loc="upper left",
+            fontsize=15,
+            title="Clusters",
+            title_fontsize=20,
+        )
     # save the plot
     if clusters is None:
         plt.savefig("MSTIGraph.jpg")
     else:
         plt.savefig("ClustersMSTIGraph.jpg")
     plt.show()
-
-
